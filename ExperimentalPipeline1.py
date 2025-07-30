@@ -8,6 +8,7 @@ from GraphGeneration import sparcity_calculator
 import numpy as np
 import pandas as pd
 from PipelineUtils import *
+from utils.seed import set_seed
 
 def run_single_experiment(experiment_config):
     # Check for required keys.
@@ -15,6 +16,9 @@ def run_single_experiment(experiment_config):
     for key in required_keys:
         if key not in experiment_config:
             raise ValueError(f"Missing required key '{key}' in experiment_config.")
+
+    # Ensure reproducibility
+    set_seed(experiment_config.get("seed", 0))
 
     # Calculate the sparsity of the initial embedding features.
     sparcity = sparcity_calculator(
@@ -114,7 +118,8 @@ def main(specific_rows, Mode):
         "track_embeddings": False,
         "track_singular_values": True,
         "get_elements": False,      # To get all the elements of the hidden embedding (best configuration)
-        "save": True
+        "save": True,
+        "seed": 0
     }
 
     base_config_motif = {
@@ -145,7 +150,8 @@ def main(specific_rows, Mode):
         "add_graph": False,
         "track_embeddings": False,
         "track_singular_values": True,
-        "save": True
+        "save": True,
+        "seed": 0
     }
 
     base_config_count = {
@@ -174,7 +180,8 @@ def main(specific_rows, Mode):
         "add_graph": False,
         "track_embeddings": False,
         "track_singular_values": True,
-        "save": True
+        "save": True,
+        "seed": 0
     }
 
     base_config_tox21 = {
@@ -204,6 +211,7 @@ def main(specific_rows, Mode):
         "file_path": "tox21",
         "save": True,
         "track_singular_values": True,
+        "seed": 0,
 
         # Avoid silly errors
         "num_nodes": 20,          # Not used in Tox21
