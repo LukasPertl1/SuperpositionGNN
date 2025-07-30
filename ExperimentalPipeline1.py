@@ -256,9 +256,9 @@ def main(specific_rows, Mode):
                     config['p'] = 1.0
 
                 # Use a default naming convention for specify.
-                config['log_dir'] = (f"runs/SV/{row['Loss']}/{int(row['Depth'])}/"
+                config['log_dir'] = (f"runs/AI/{row['Loss']}/{int(row['Depth'])}/"
                                      f"{row['Architecture']}/{row['Type']}/{row['Feature_num']}/specified")
-                config['file_path'] = (f"SV/{row['Loss']}/{int(row['Depth'])}/"
+                config['file_path'] = (f"AI/{row['Loss']}/{int(row['Depth'])}/"
                                        f"{row['Architecture']}/{row['Type']}/{row['Feature_num']}/specified")
                 configs.append(config.copy())
             else:
