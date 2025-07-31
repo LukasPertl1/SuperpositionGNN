@@ -51,6 +51,7 @@ def run_single_experiment(experiment_config):
 
     # Alignment Index using only well-trained instances
     well_trained_embs = filter_well_trained_embeddings(results, all_average_embeddings, ratio=0.75)
+    well_trained_embs = zero_mean_embeddings_list(well_trained_embs)
     ai_mean, ai_ci = alignment_index_list(well_trained_embs)
     
     # Dynamically build a descriptive file name.
