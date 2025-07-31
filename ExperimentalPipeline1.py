@@ -30,7 +30,7 @@ def run_single_experiment(experiment_config):
     print(f"\nRunning experiment: mode={experiment_config['mode']} | model_type={experiment_config['model_type']}")
     
     # Run the experiments.
-    results, all_model_params, all_average_embeddings, empty_graph_stats, avg_predictions = run_multiple_experiments(experiment_config, num_experiments=30)
+    results, all_model_params, all_average_embeddings, empty_graph_stats, avg_predictions = run_multiple_experiments(experiment_config, num_experiments=10)
     print(f"Average predictions: {avg_predictions}")
     # Condense empty graph stats
     empty_graph_stats = mean_std_global(empty_graph_stats)
@@ -111,7 +111,7 @@ def main(specific_rows, Mode):
         "use_weighting": True,
         "importance": (15.0, 10.0),
         "phase1_epochs": 0,
-        "phase2_epochs": 5,
+        "phase2_epochs": 50,
         "min_epochs": 20,
         "early_stop_patience": 5,
         "early_stop_delta": 0.01,
