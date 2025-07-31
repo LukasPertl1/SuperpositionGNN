@@ -325,6 +325,46 @@ def filter_well_trained_embeddings(results: List[Any], embeddings: List[Dict[Any
     return filtered
 
 
+def zero_mean_embeddings(embeddings: Dict[Any, torch.Tensor]) -> Dict[Any, torch.Tensor]:
+    """Center embeddings so their mean vector is zero.
+
+    Parameters
+    ----------
+    embeddings : dict
+        Mapping from keys to embedding vectors.  Values may be ``torch.Tensor``
+        or array‑like objects convertible to tensors.
+
+    Returns
+    -------
+    dict
+        New dictionary with the mean vector subtracted from each embedding.
+    """
+
+    if not embeddings:
+        return embeddings
+
+    keys = list(embeddings.keys())
+    vecs = []
+    for k in keys:
+        v = embeddings[k]
+        if isinstance(v, torch.Tensor):
+            t = v.detach().clone()
+        else:
+            t = torch.tensor(v, dtype=torch.float32)
+        vecs.append(t)
+
+    stacked = torch.stack(vecs)
+    mean_vec = stacked.mean(dim=0)
+
+    return {k: vec - mean_vec for k, vec in zip(keys, vecs)}
+
+
+def zero_mean_embeddings_list(embeddings_list: List[Dict[Any, torch.Tensor]]) -> List[Dict[Any, torch.Tensor]]:
+    """Apply :func:`zero_mean_embeddings` to each element in ``embeddings_list``."""
+
+    return [zero_mean_embeddings(e) for e in embeddings_list]
+
+
 def alignment_index(embeddings: Dict[Any, torch.Tensor]) -> Tuple[float, Tuple[float, float]]:
     """Compute the Alignment Index (AI) for a set of embedding vectors.
 
