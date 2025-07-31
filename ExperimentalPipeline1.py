@@ -49,8 +49,9 @@ def run_single_experiment(experiment_config):
     # Saves all elements in an extra file
     get_all_elements(experiment_config, average_embeddings)
 
-    # Alignment Index on the averaged embeddings
-    ai_mean, ai_ci = alignment_index_list(list(average_embeddings_summary.values()))
+    # Alignment Index using only well-trained instances
+    well_trained_embs = filter_well_trained_embeddings(results, all_average_embeddings, ratio=0.75)
+    ai_mean, ai_ci = alignment_index_list(well_trained_embs)
     
     # Dynamically build a descriptive file name.
     mode = experiment_config["mode"]
