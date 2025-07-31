@@ -284,6 +284,47 @@ def mean_singular_values(results: List[Dict[str, Any]]) -> Tuple[float, float]:
     return mean_highest, mean_second
 
 
+def filter_well_trained_embeddings(results: List[Any], embeddings: List[Dict[Any, torch.Tensor]], *, ratio: float = 0.75) -> List[Dict[Any, torch.Tensor]]:
+    """Filter embeddings based on a training quality heuristic.
+
+    Parameters
+    ----------
+    results : list
+        Raw result entries corresponding to each ``embedding``. Each entry may be
+        a list ``[num_features, num_active, ...]`` or a dictionary containing the
+        keys ``"Num of features"`` and ``"Num of active features"``.
+    embeddings : list of dict
+        Embedding dictionaries returned for each experiment run.
+    ratio : float, optional
+        The minimum fraction of active features relative to total features that
+        qualifies a run as well trained.  Defaults to ``0.75``.
+
+    Returns
+    -------
+    list of dict
+        The subset of ``embeddings`` deemed well trained.
+    """
+
+    filtered = []
+    for res, emb in zip(results, embeddings):
+        if res is None:
+            continue
+        # Support both list and dict formats for ``res``
+        if isinstance(res, dict):
+            num_features = res.get("Num of features", 0)
+            num_active = res.get("Num of active features", 0)
+        else:
+            if len(res) < 2:
+                continue
+            num_features = res[0]
+            num_active = res[1]
+
+        if num_features and num_active >= ratio * num_features:
+            filtered.append(emb)
+
+    return filtered
+
+
 def alignment_index(embeddings: Dict[Any, torch.Tensor]) -> Tuple[float, Tuple[float, float]]:
     """Compute the Alignment Index (AI) for a set of embedding vectors.
 
