@@ -113,10 +113,10 @@ def main(specific_rows, Mode):
         "use_weighting": True,
         "importance": (15.0, 10.0),
         "phase1_epochs": 0,
-        "phase2_epochs": 50,
+        "phase2_epochs": 80,
         "min_epochs": 20,
-        "early_stop_patience": 5,
-        "early_stop_delta": 0.002,
+        "early_stop_patience": 10,
+        "early_stop_delta": 0.001,
         "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "model_type": "GIN",         # e.g. "GCN" or "GIN"
         "loss": "BCE",

@@ -198,11 +198,15 @@ class GNNModel(nn.Module):
         elif self.model_type == "SPM":
             self.convs = nn.ModuleList()
             prev_dim = in_dim
-            for hdim in hidden_dims:
-                self.convs.append(
-                    SignedPowerMeanConv(prev_dim, hdim, p_local=self.conv_p)
-                )
+            for i, hdim in enumerate(hidden_dims):
+                if i == 0:
+                    # first layer: use the usual aggregation (GCNConv shown here)
+                    self.convs.append(GCNConv(prev_dim, hdim, add_self_loops=False))
+                else:
+                    # later layers: apply signed power-mean
+                    self.convs.append(SignedPowerMeanConv(prev_dim, hdim, p_local=self.conv_p))
                 prev_dim = hdim
+
 
         else:
             raise ValueError("Unsupported model_type. Choose 'GCN', 'GIN', or 'SPM'.")
