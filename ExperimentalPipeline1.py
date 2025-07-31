@@ -234,85 +234,51 @@ def main(specific_rows, Mode):
             row = df.iloc[idx]
             config = base_config_simple.copy()
 
-            type_lower = row['Type'].strip().lower()
-            feature_num_str = str(row['Feature_num'])
+            # Only the 'specify' option is supported
+            if row['Type'].strip().lower() != "specify":
+                raise ValueError(
+                    f"Only 'specify' type is supported in simple mode. Found {row['Type']} at row {idx + 2}"
+                )
 
+            # Basic configuration fields from Excel
             config['loss'] = row['Loss']
             config['model_type'] = row['Architecture']
             config['pooling'] = row['Pooling']
 
-            if type_lower == "specify" or ("," in feature_num_str):
-                # For the specify case, call helper function to get a tuple: (feature, hidden_dims)
-                feature_val, hidden_dims = get_hidden_dims("simple",
-                                                           feature_num=row['Feature_num'],
-                                                           depth=int(row['Depth']),
-                                                           type_str=row['Type'])
-                config['num_categories'] = feature_val
-                config['in_dim'] = feature_val
-                config['hidden_dims'] = hidden_dims
-                if feature_val < 18:
-                    config['p'] = feature_val/18
-                else:
-                    config['p'] = 1.0
+            if config['pooling'] == 'gm':
+                config['gm_p'] = row['Power']
 
-                # Use a default naming convention for specify.
-                config['log_dir'] = (f"runs/AI/{row['Loss']}/{int(row['Depth'])}/"
-                                     f"{row['Architecture']}/{row['Type']}/{row['Feature_num']}/specified")
-                config['file_path'] = (f"AI/{row['Loss']}/{int(row['Depth'])}/"
-                                       f"{row['Architecture']}/{row['Type']}/{row['Feature_num']}/specified")
-                configs.append(config.copy())
+            # Parse feature and hidden dimensions from the specify string
+            feature_val, hidden_dims = get_hidden_dims(
+                "simple",
+                feature_num=row['Feature_num'],
+                depth=int(row['Depth']),
+                type_str="specify",
+            )
+
+            config['num_categories'] = feature_val
+            config['in_dim'] = feature_val
+            config['hidden_dims'] = hidden_dims
+
+            if feature_val < 18:
+                config['p'] = feature_val / 18
             else:
-                # Regular case using the lookup.
-                config['num_categories'] = int(feature_num_str)
-                config['in_dim'] = int(feature_num_str)
-                config['hidden_dims'] = get_hidden_dims("simple",
-                                                       feature_num=row['Feature_num'],
-                                                       depth=int(row['Depth']),
-                                                       type_str=row['Type'])
-                if int(row['Feature_num']) == 5:
-                    probs = [0.3, 0.6, 0.8]
-                    labels = ['high', 'medium', 'low']
-                    for i in range(1):  # Example: iterate over one probability option.
-                        config['p'] = probs[i]
-                        if row['Pooling'] == 'gm':
-                            config['gm_p'] = row['Power']
-                            config['log_dir'] = (f"runs/T/{row['Loss']}/{int(row['Depth'])}/{row['Architecture']}/"
-                                                 f"{row['Type']}/p_gm={row['Power']}/{int(row['Feature_num'])}/{labels[i]}")
-                            config['file_path'] = (f"T/{row['Loss']}/{int(row['Depth'])}/{row['Architecture']}/"
-                                                   f"{row['Type']}/p_gm={row['Power']}/{row['Feature_num']}/{labels[i]}")
-                        else:
-                            config['log_dir'] = (f"runs/T/{row['Loss']}/{int(row['Depth'])}/{row['Architecture']}/"
-                                                 f"{row['Type']}/{row['Pooling']}/{int(row['Feature_num'])}/{labels[i]}")
-                            config['file_path'] = (f"T/{row['Loss']}/{int(row['Depth'])}/{row['Architecture']}/"
-                                                   f"{row['Type']}/{row['Pooling']}/{int(row['Feature_num'])}/{labels[i]}")
-                        configs.append(config.copy())
-                elif int(row['Feature_num']) == 12:
-                    if row['Pooling'] == 'gm':
-                        config['log_dir'] = (f"runs/T/{row['Loss']}/{int(row['Depth'])}/{row['Architecture']}/"
-                                             f"{row['Type']}/p_gm={row['Power']}/{int(row['Feature_num'])}/high")
-                        config['file_path'] = (f"T/{row['Loss']}/{int(row['Depth'])}/{row['Architecture']}/"
-                                               f"{row['Type']}/p_gm={row['Power']}/{int(row['Feature_num'])}/high")
-                        configs.append(config)
-                    else:
-                        config['log_dir'] = (f"runs/T/{row['Loss']}/{int(row['Depth'])}/{row['Architecture']}/"
-                                             f"{row['Type']}/{row['Pooling']}/{int(row['Feature_num'])}/high")
-                        config['file_path'] = (f"T/{row['Loss']}/{int(row['Depth'])}/{row['Architecture']}/"
-                                               f"{row['Type']}/{row['Pooling']}/{int(row['Feature_num'])}/high")
-                        configs.append(config)
-                elif int(row['Feature_num']) == 3:
-                    config['p'] = 0.18
-                    config['log_dir'] = (f"runs/T/{row['Loss']}/{int(row['Depth'])}/{row['Architecture']}/"
-                                         f"{row['Type']}/{row['Pooling']}/{int(row['Feature_num'])}")
-                    config['file_path'] = (f"T/{row['Loss']}/{int(row['Depth'])}/{row['Architecture']}/"
-                                           f"{row['Type']}/{row['Pooling']}/{int(row['Feature_num'])}")
-                    configs.append(config.copy())
-                elif int(row['Feature_num']) == 4:
-                    config['p'] = 0.24
-                    config['log_dir'] = (f"runs/T/{row['Loss']}/{int(row['Depth'])}/{row['Architecture']}/"
-                                         f"{row['Type']}/{row['Pooling']}/{int(row['Feature_num'])}")
-                    config['file_path'] = (f"T/{row['Loss']}/{int(row['Depth'])}/{row['Architecture']}/"
-                                           f"{row['Type']}/{row['Pooling']}/{int(row['Feature_num'])}")
-                    configs.append(config.copy())
+                config['p'] = 1.0
+
+            pooling_part = (
+                f"p_gm={config['gm_p']}" if config['pooling'] == 'gm' else config['pooling']
+            )
+
+            config['log_dir'] = (
+                f"runs/AI/{row['Loss']}/{int(row['Depth'])}/"
+                f"{row['Architecture']}/specify/{row['Feature_num']}/{pooling_part}"
+            )
+            config['file_path'] = (
+                f"AI/{row['Loss']}/{int(row['Depth'])}/"
+                f"{row['Architecture']}/specify/{row['Feature_num']}/{pooling_part}"
+            )
+
+            configs.append(config.copy())
 
     elif Mode == "motif":
         df = pd.read_excel('ExperimentList/motif_combinations.xlsx')
