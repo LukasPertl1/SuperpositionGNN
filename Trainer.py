@@ -82,15 +82,41 @@ class Trainer:
         return total_loss / len(self.train_loader)
 
     def train(self, num_epochs, experiment_number=1):
+        """Train the model for up to ``num_epochs`` with optional early stopping.
+
+        Early stopping is controlled via the configuration dictionary passed at
+        initialization.  The following keys are supported:
+
+        ``min_epochs`` (int, default ``20``)
+            Minimum number of epochs to train before early stopping is
+            considered.
+
+        ``early_stop_patience`` (int, default ``5``)
+            Number of epochs with no improvement after ``min_epochs`` before
+            stopping.
+
+        ``early_stop_delta`` (float, default ``0.01``)
+            Minimum change in evaluation loss to qualify as an improvement.
+        """
+
+        min_epochs = self.config.get("min_epochs", 20)
+        patience = self.config.get("early_stop_patience", 5)
+        delta = self.config.get("early_stop_delta", 0.01)
+
+        best_loss = float("inf")
+        epochs_no_improve = 0
+
         for epoch in range(1, num_epochs + 1):
             epoch_loss = self.train_one_epoch()
             print(f"Epoch {epoch}/{num_epochs}, Loss: {epoch_loss:.4f}")
-            _, avg_accuracy, _, avg_embeddings, _, _ = self.evaluate()
+            eval_loss, avg_accuracy, _, avg_embeddings, _, _ = self.evaluate()
             if self.writer:
                 # Log epoch loss for multiple experiments under the same main tag "Eval/Epoch_Loss"
                 self.writer.add_scalars("Eval/Epoch_Loss", {f"exp_{experiment_number}": epoch_loss}, epoch)
                 # Log accuracy for multiple experiments under the same main tag "Eval/Accuracy"
                 self.writer.add_scalars("Eval/Accuracy", {f"exp_{experiment_number}": avg_accuracy}, epoch)
+                # Log evaluation loss to monitor early stopping behaviour
+                self.writer.add_scalars("Eval/Eval_Loss", {f"exp_{experiment_number}": eval_loss}, epoch)
 
                 if self.config.get("track_singular_values", False):
                     # Log the singular values for each target tuple.
@@ -110,8 +136,23 @@ class Trainer:
                     # Use the dictionary keys as metadata:
                     metadata = list(avg_embeddings.keys())
                     # Log the embeddings to TensorBoard.
-                    self.writer.add_embedding(embeddings, metadata=metadata, global_step=epoch, tag=(f"Eval/Avg_Embeddings/exp_{experiment_number}"))
+                    self.writer.add_embedding(
+                        embeddings,
+                        metadata=metadata,
+                        global_step=epoch,
+                        tag=(f"Eval/Avg_Embeddings/exp_{experiment_number}"),
+                    )
 
+            # ---------- early stopping logic ----------
+            if eval_loss + delta < best_loss:
+                best_loss = eval_loss
+                epochs_no_improve = 0
+            else:
+                epochs_no_improve += 1
+
+            if epoch >= min_epochs and epochs_no_improve >= patience:
+                print(f"Early stopping triggered at epoch {epoch}")
+                break
 
     @staticmethod
     def is_pure_graph(target_vec):

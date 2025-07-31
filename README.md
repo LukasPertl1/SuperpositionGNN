@@ -144,6 +144,7 @@ SuperpositionGNN/
 * Two-phase training: freeze final layer, then unfreeze for fine-tuning.
 * `evaluate()` returns loss, accuracy, prediction/embedding dicts, and empty-graph stats.
 * Geometry analysis: `svd_analysis`, `geometry_of_representation`, summarization utilities.
+* Early stopping after a minimum number of epochs via `min_epochs`, `early_stop_patience`, and `early_stop_delta` configuration options.
 
 ### Runner.py
 
