@@ -76,7 +76,8 @@ def run_multiple_experiments(experiment_config, num_experiments=10):
             out_dim      = out_dim,
             freeze_final = True,
             pooling      = pooling,
-            gm_p         = experiment_config.get("gm_p", 1.0)
+            gm_p         = experiment_config.get("gm_p", 1.0),
+            conv_p       = experiment_config.get("conv_p", 1.0),
         ).to(experiment_config["device"])
 
         # ── 3.  Criterion (with / without pos_weight) ───────────────────────────

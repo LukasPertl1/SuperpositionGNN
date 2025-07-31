@@ -122,6 +122,7 @@ def main(specific_rows, Mode):
         "loss": "BCE",
         "pooling": "max",
         "gm_p": 1.0,               # Generalized mean pooling parameter
+        "conv_p": 1.0,             # Power for SignedPowerMeanConv
         "log_dir": "runs/GIN/simple/large/max/12",
         "file_path": "GIN/simple/large/max/12",
         "add_graph": False,
@@ -158,6 +159,7 @@ def main(specific_rows, Mode):
         "loss": "BCE",
         "pooling": "max",
         "gm_p": 1.0,               # Generalized mean pooling parameter
+        "conv_p": 1.0,
         "log_dir": "runs/GIN/simple/large/max/12",
         "file_path": "GIN/simple/large/max/12",
         "add_graph": False,
@@ -191,6 +193,7 @@ def main(specific_rows, Mode):
         "loss": "BCE",
         "pooling": "max",
         "gm_p": 1.0,               # Generalized mean pooling parameter
+        "conv_p": 1.0,
         "log_dir": "runs/GIN/count",
         "file_path": "GIN/count",
         "add_graph": False,
@@ -218,6 +221,7 @@ def main(specific_rows, Mode):
         "loss": "BCE",
         "pooling": "mean",
         "gm_p": 1.0,
+        "conv_p": 1.0,
         "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "phase1_epochs": 0,
         "phase2_epochs": 50,
@@ -262,6 +266,9 @@ def main(specific_rows, Mode):
             if config['pooling'] == 'gm':
                 config['gm_p'] = row['Power']
 
+            if config['model_type'] == 'SPM':
+                config['conv_p'] = row.get('LocalPower', 1.0)
+
             # Parse feature and hidden dimensions from the specify string
             feature_val, hidden_dims = get_hidden_dims(
                 "simple",
@@ -299,9 +306,11 @@ def main(specific_rows, Mode):
         for idx in specific_rows:
             row = df.iloc[idx]
             config = base_config_motif.copy()
-            
+
             config['model_type'] = row['Architecture']
             config['pooling'] = row['Pooling']
+            if config['model_type'] == 'SPM':
+                config['conv_p'] = row.get('LocalPower', 1.0)
             config['log_dir'] = f"runs/motif/{row['Architecture']}/{row['Pooling']}/{row['Hidden']}"
             config['file_path'] = f"motif/{row['Architecture']}/{row['Pooling']}/{row['Hidden']}"
             
@@ -314,9 +323,11 @@ def main(specific_rows, Mode):
         for idx in specific_rows:
             row = df.iloc[idx]
             config = base_config_count.copy()
-            
+
             config['model_type'] = row['Architecture']
             config['pooling'] = row['Pooling']
+            if config['model_type'] == 'SPM':
+                config['conv_p'] = row.get('LocalPower', 1.0)
             config['log_dir'] = f"runs/evo/count/{row['Architecture']}/{row['Pooling']}/{row['Hidden']}"
             config['file_path'] = f"evo/count/{row['Architecture']}/{row['Pooling']}/{row['Hidden']}"
             
@@ -333,6 +344,8 @@ def main(specific_rows, Mode):
             # let you vary architecture / pooling / hidden dims via Excel
             config["model_type"] = row["Architecture"]
             config["pooling"]    = row["Pooling"]
+            if config["model_type"] == 'SPM':
+                config["conv_p"] = row.get('LocalPower', 1.0)
             __, hidden_dims = get_hidden_dims("tox21",
                                                     feature_num=row['Feature_num'],
                                                     depth=int(row['Depth']),

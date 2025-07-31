@@ -2,7 +2,13 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GCNConv, GINConv, global_mean_pool, global_max_pool
+from torch_geometric.nn import (
+    GCNConv,
+    GINConv,
+    global_mean_pool,
+    global_max_pool,
+    MessagePassing,
+)
 from torch_scatter import scatter_mean
 
 # ----------------------------
@@ -109,25 +115,62 @@ def global_generalized_mean_pool(x, batch, p, eps=1e-6):
     # Apply the inverse transformation with epsilon for stability.
     return torch.sign(pooled) * ((torch.abs(pooled) + eps) ** (1.0 / p))
 
+
+class SignedPowerMeanConv(MessagePassing):
+    """Convolution using the signed power-mean aggregation."""
+
+    def __init__(self, in_channels, out_channels, p_local: float = 1.0):
+        super().__init__(aggr=None)
+        self.lin = nn.Linear(in_channels, out_channels)
+        self.p_local = p_local
+
+    def forward(self, x, edge_index):
+        x = self.lin(x)
+        return self.propagate(edge_index, x=x)
+
+    def message(self, x_j):
+        return x_j
+
+    def aggregate(self, inputs, index, dim_size=None):
+        eps = 1e-6
+        t = torch.sign(inputs) * ((inputs.abs() + eps) ** self.p_local)
+        pooled = scatter_mean(t, index, dim=0, dim_size=dim_size)
+        return torch.sign(pooled) * (
+            (pooled.abs() + eps) ** (1.0 / self.p_local)
+        )
+
 # ----------------------------
 # Unified GNN Model Class
 # ----------------------------
 class GNNModel(nn.Module):
-    def __init__(self, model_type="GCN", in_dim=3, hidden_dims=[3, 3], out_dim=3, freeze_final=True, pooling="mean", gm_p=1.0):
+    def __init__(
+        self,
+        model_type="GCN",
+        in_dim=3,
+        hidden_dims=[3, 3],
+        out_dim=3,
+        freeze_final=True,
+        pooling="mean",
+        gm_p=1.0,
+        conv_p=1.0,
+    ):
         """
         Constructs a flexible GNN model.
         
         Parameters:
-          model_type (str): Choose "GCN" or "GIN" to decide which convolution type to use.
+          model_type (str): Choose "GCN", "GIN", or "SPM" to decide which convolution type to use.
           in_dim (int): Input dimension for node features.
           hidden_dims (list of int): List of hidden layer dimensions.
           out_dim (int): Number of output features (e.g. number of classes or target dimensions).
           freeze_final (bool): If True, freezes the weight (but not the bias) of the final linear layer.
+          gm_p (float): Power for global generalized mean pooling.
+          conv_p (float): Power for the signed power-mean convolution when using model_type "SPM".
         """
         super(GNNModel, self).__init__()
         self.model_type = model_type
         self.pooling = pooling
         self.p = gm_p
+        self.conv_p = conv_p
 
         if self.model_type == "GCN":
             self.convs = nn.ModuleList()
@@ -152,8 +195,17 @@ class GNNModel(nn.Module):
                 self.convs.append(GINConv(mlp, train_eps=True))
                 prev_dim = hdim
 
+        elif self.model_type == "SPM":
+            self.convs = nn.ModuleList()
+            prev_dim = in_dim
+            for hdim in hidden_dims:
+                self.convs.append(
+                    SignedPowerMeanConv(prev_dim, hdim, p_local=self.conv_p)
+                )
+                prev_dim = hdim
+
         else:
-            raise ValueError("Unsupported model_type. Choose 'GCN' or 'GIN'.")
+            raise ValueError("Unsupported model_type. Choose 'GCN', 'GIN', or 'SPM'.")
 
         # Final linear layer (applied after global pooling)
         self.lin_out = nn.Linear(prev_dim, out_dim, bias=True)
