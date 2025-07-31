@@ -112,6 +112,9 @@ def main(specific_rows, Mode):
         "importance": (15.0, 10.0),
         "phase1_epochs": 0,
         "phase2_epochs": 5,
+        "min_epochs": 20,
+        "early_stop_patience": 5,
+        "early_stop_delta": 0.01,
         "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "model_type": "GIN",         # e.g. "GCN" or "GIN"
         "loss": "BCE",
@@ -145,6 +148,9 @@ def main(specific_rows, Mode):
         "importance": (15.0, 10.0),
         "phase1_epochs": 0,
         "phase2_epochs": 50,
+        "min_epochs": 20,
+        "early_stop_patience": 5,
+        "early_stop_delta": 0.01,
         "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "model_type": "GIN",       # REQUIRED: e.g. "GCN" or "GIN"
         "loss": "BCE",
@@ -175,6 +181,9 @@ def main(specific_rows, Mode):
         "importance": (15.0, 10.0),
         "phase1_epochs": 0,
         "phase2_epochs": 15,
+        "min_epochs": 20,
+        "early_stop_patience": 5,
+        "early_stop_delta": 0.01,
         "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "model_type": "GIN",       # REQUIRED: e.g. "GCN" or "GIN"
         "loss": "BCE",
@@ -210,6 +219,9 @@ def main(specific_rows, Mode):
         "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "phase1_epochs": 0,
         "phase2_epochs": 50,
+        "min_epochs": 20,
+        "early_stop_patience": 5,
+        "early_stop_delta": 0.01,
 
         # bookkeeping
         "log_dir": "runs/tox21",
