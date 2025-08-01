@@ -284,7 +284,12 @@ def mean_singular_values(results: List[Dict[str, Any]]) -> Tuple[float, float]:
     return mean_highest, mean_second
 
 
-def filter_well_trained_embeddings(results: List[Any], embeddings: List[Dict[Any, torch.Tensor]], *, ratio: float = 0.75) -> List[Dict[Any, torch.Tensor]]:
+def filter_well_trained_embeddings(
+    results: List[Any],
+    embeddings: List[Dict[Any, torch.Tensor]],
+    *,
+    ratio: float = 0.75,
+) -> Tuple[List[Dict[Any, torch.Tensor]], List[int]]:
     """Filter embeddings based on a training quality heuristic.
 
     Parameters
@@ -301,11 +306,14 @@ def filter_well_trained_embeddings(results: List[Any], embeddings: List[Dict[Any
 
     Returns
     -------
-    list of dict
-        The subset of ``embeddings`` deemed well trained.
+    tuple
+        ``(filtered_embeddings, active_counts)`` where ``filtered_embeddings`` is
+        the subset of ``embeddings`` deemed well trained and ``active_counts`` is
+        a list of the corresponding numbers of active features.
     """
 
-    filtered = []
+    filtered: List[Dict[Any, torch.Tensor]] = []
+    active_counts: List[int] = []
     for res, emb in zip(results, embeddings):
         if res is None:
             continue
@@ -321,8 +329,9 @@ def filter_well_trained_embeddings(results: List[Any], embeddings: List[Dict[Any
 
         if num_features and num_active >= ratio * num_features:
             filtered.append(emb)
+            active_counts.append(num_active)
 
-    return filtered
+    return filtered, active_counts
 
 
 def zero_mean_embeddings(embeddings: Dict[Any, torch.Tensor]) -> Dict[Any, torch.Tensor]:
@@ -440,3 +449,72 @@ def alignment_index_list(embeddings_list: List[Dict[Any, torch.Tensor]]) -> Tupl
     se = sd / np.sqrt(len(values))
     delta = 1.96 * se
     return mean_ai, (mean_ai - delta, mean_ai + delta)
+
+
+def effective_rank(embeddings: Dict[Any, torch.Tensor]) -> float:
+    """Compute the effective rank of a set of zero-mean embeddings.
+
+    The effective rank is defined as ``exp(H)`` where ``H`` is the entropy of the
+    normalized singular values of the covariance matrix of the embeddings.
+    """
+
+    if not embeddings:
+        return 0.0
+
+    vecs = []
+    for v in embeddings.values():
+        if isinstance(v, torch.Tensor):
+            v = v.detach().cpu().numpy()
+        vecs.append(np.asarray(v, dtype=float))
+
+    if not vecs:
+        return 0.0
+
+    mat = np.stack(vecs, axis=0)
+    if mat.ndim == 1:
+        mat = mat.reshape(1, -1)
+
+    cov = np.cov(mat, rowvar=False, bias=True)
+    # np.cov may return a scalar if mat has one column/row
+    cov = np.atleast_2d(cov)
+    sigma = np.linalg.svd(cov, compute_uv=False)
+    if sigma.size == 0 or np.sum(sigma) <= 0:
+        return 0.0
+
+    p = sigma / np.sum(sigma)
+    p = p[p > 0]
+    H = -np.sum(p * np.log(p))
+    return float(np.exp(H))
+
+
+def superposition_index(embeddings: Dict[Any, torch.Tensor], num_active: int) -> float:
+    """Compute the Superposition Index for a single set of embeddings."""
+
+    er = effective_rank(embeddings)
+    if er == 0:
+        return 0.0
+    return float(num_active) / er
+
+
+def superposition_index_list(
+    embeddings_list: List[Dict[Any, torch.Tensor]],
+    active_counts: List[int],
+) -> Tuple[float, Tuple[float, float]]:
+    """Compute mean Superposition Index and its 95% confidence interval."""
+
+    if not embeddings_list or not active_counts:
+        return 0.0, (0.0, 0.0)
+
+    values = []
+    for emb, n_active in zip(embeddings_list, active_counts):
+        values.append(superposition_index(emb, n_active))
+
+    if not values:
+        return 0.0, (0.0, 0.0)
+
+    values = np.array(values)
+    mean_si = values.mean()
+    sd = values.std(ddof=1) if len(values) > 1 else 0.0
+    se = sd / np.sqrt(len(values)) if len(values) > 0 else 0.0
+    delta = 1.96 * se
+    return mean_si, (mean_si - delta, mean_si + delta)

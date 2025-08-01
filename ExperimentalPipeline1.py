@@ -28,7 +28,16 @@ def run_single_experiment(experiment_config):
     )
 
     print(f"\nRunning experiment: mode={experiment_config['mode']} | model_type={experiment_config['model_type']}")
-    
+
+    # Append LocalPower to paths if using SPM model
+    if experiment_config["model_type"] == "SPM":
+        lp = experiment_config.get("conv_p", 1.0)
+        lp_part = f"p_lp={lp}"
+        if experiment_config.get("log_dir") and lp_part not in experiment_config["log_dir"]:
+            experiment_config["log_dir"] = os.path.join(experiment_config["log_dir"], lp_part)
+        if experiment_config.get("file_path") and lp_part not in experiment_config["file_path"]:
+            experiment_config["file_path"] = os.path.join(experiment_config["file_path"], lp_part)
+
     # Run the experiments.
     results, all_model_params, all_average_embeddings, empty_graph_stats, avg_predictions = run_multiple_experiments(experiment_config, num_experiments=8)
     print(f"Average predictions: {avg_predictions}")
@@ -49,10 +58,13 @@ def run_single_experiment(experiment_config):
     # Saves all elements in an extra file
     get_all_elements(experiment_config, average_embeddings)
 
-    # Alignment Index using only well-trained instances
-    well_trained_embs = filter_well_trained_embeddings(results, all_average_embeddings, ratio=0.75)
+    # Alignment and Superposition indices using only well-trained instances
+    well_trained_embs, active_counts = filter_well_trained_embeddings(
+        results, all_average_embeddings, ratio=0.75
+    )
     well_trained_embs = zero_mean_embeddings_list(well_trained_embs)
     ai_mean, ai_ci = alignment_index_list(well_trained_embs)
+    si_mean, si_ci = superposition_index_list(well_trained_embs, active_counts)
     
     # Dynamically build a descriptive file name.
     mode = experiment_config["mode"]
@@ -61,10 +73,22 @@ def run_single_experiment(experiment_config):
     hidden_dims = experiment_config["hidden_dims"]
     final_hidden_dim = hidden_dims[-1]
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_name = f"exp_{mode}_{model_type}_{num_categories}cats_{final_hidden_dim}hidden_{timestamp}.json"
-    
+    if model_type == "SPM":
+        lp = experiment_config.get("conv_p", 1.0)
+        file_name = (
+            f"exp_{mode}_{model_type}_lp{lp}_{num_categories}cats_{final_hidden_dim}hidden_{timestamp}.json"
+        )
+    else:
+        file_name = f"exp_{mode}_{model_type}_{num_categories}cats_{final_hidden_dim}hidden_{timestamp}.json"
+
     # Define the folder structure; you could even vary this per config.
     file_path = experiment_config.get("file_path", "experiment_results")
+    if model_type == "SPM":
+        lp = experiment_config.get("conv_p", 1.0)
+        lp_dir = f"p_lp={lp}"
+        if lp_dir not in file_path:
+            file_path = os.path.join(file_path, lp_dir)
+            experiment_config["file_path"] = file_path
     folder = os.path.join("experiment_results", file_path)
     os.makedirs(folder, exist_ok=True)
     file_path = os.path.join(folder, file_name)
@@ -75,6 +99,8 @@ def run_single_experiment(experiment_config):
         "sparcity": sparcity,
         "alignment index": ai_mean,
         "alignment index CI": ai_ci,
+        "superposition index": si_mean,
+        "superposition index CI": si_ci,
         "empty graph stats": empty_graph_stats,
         "singular value ratio": sv_ratio,
         "summary format:": "Key: (Num of active features, Num of accurate feature, Geometry, Collapsed). Loss, s.d. Loss, Count",
@@ -298,6 +324,10 @@ def main(specific_rows, Mode):
                 f"AI/{row['Loss']}/{int(row['Depth'])}/"
                 f"{row['Architecture']}/specify/{row['Feature_num']}/{pooling_part}"
             )
+            if config['model_type'] == 'SPM':
+                lp_part = f"p_lp={config['conv_p']}"
+                config['log_dir'] = os.path.join(config['log_dir'], lp_part)
+                config['file_path'] = os.path.join(config['file_path'], lp_part)
 
             configs.append(config.copy())
 
@@ -313,6 +343,10 @@ def main(specific_rows, Mode):
                 config['conv_p'] = row.get('LocalPower', 1.0)
             config['log_dir'] = f"runs/motif/{row['Architecture']}/{row['Pooling']}/{row['Hidden']}"
             config['file_path'] = f"motif/{row['Architecture']}/{row['Pooling']}/{row['Hidden']}"
+            if config['model_type'] == 'SPM':
+                lp_part = f"p_lp={config['conv_p']}"
+                config['log_dir'] = os.path.join(config['log_dir'], lp_part)
+                config['file_path'] = os.path.join(config['file_path'], lp_part)
             
             # Use the helper function for motif mode.
             config['hidden_dims'] = get_hidden_dims("motif", hidden=row['Hidden'])
@@ -330,6 +364,10 @@ def main(specific_rows, Mode):
                 config['conv_p'] = row.get('LocalPower', 1.0)
             config['log_dir'] = f"runs/evo/count/{row['Architecture']}/{row['Pooling']}/{row['Hidden']}"
             config['file_path'] = f"evo/count/{row['Architecture']}/{row['Pooling']}/{row['Hidden']}"
+            if config['model_type'] == 'SPM':
+                lp_part = f"p_lp={config['conv_p']}"
+                config['log_dir'] = os.path.join(config['log_dir'], lp_part)
+                config['file_path'] = os.path.join(config['file_path'], lp_part)
             
             # Use the helper function for count mode.
             config['hidden_dims'] = get_hidden_dims("count", hidden=row['Hidden'])
@@ -354,6 +392,10 @@ def main(specific_rows, Mode):
 
             config["log_dir"]  = f"runs/tox21/{row['Architecture']}/{row['Pooling']}/{config['hidden_dims']}"
             config["file_path"]= f"tox21/{row['Architecture']}/{row['Pooling']}/{config['hidden_dims']}"
+            if config["model_type"] == 'SPM':
+                lp_part = f"p_lp={config['conv_p']}"
+                config["log_dir"] = os.path.join(config["log_dir"], lp_part)
+                config["file_path"] = os.path.join(config["file_path"], lp_part)
             configs.append(config)
     
     # Loop through each configuration and run the corresponding experiment.
