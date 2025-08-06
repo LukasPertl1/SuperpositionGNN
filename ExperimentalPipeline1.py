@@ -39,7 +39,7 @@ def run_single_experiment(experiment_config):
             experiment_config["file_path"] = os.path.join(experiment_config["file_path"], lp_part)
 
     # Run the experiments.
-    results, all_model_params, all_average_embeddings, empty_graph_stats, avg_predictions = run_multiple_experiments(experiment_config, num_experiments=8)
+    results, all_model_params, all_average_embeddings, empty_graph_stats, avg_predictions = run_multiple_experiments(experiment_config, num_experiments=30)
     print(f"Average predictions: {avg_predictions}")
     # Condense empty graph stats
     empty_graph_stats = mean_std_global(empty_graph_stats)
@@ -141,8 +141,8 @@ def main(specific_rows, Mode):
         "phase1_epochs": 0,
         "phase2_epochs": 80,
         "min_epochs": 20,
-        "early_stop_patience": 10,
-        "early_stop_delta": 0.001,
+        "early_stop_patience": 8,
+        "early_stop_delta": 0.002,
         "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         "model_type": "GIN",         # e.g. "GCN" or "GIN"
         "loss": "BCE",

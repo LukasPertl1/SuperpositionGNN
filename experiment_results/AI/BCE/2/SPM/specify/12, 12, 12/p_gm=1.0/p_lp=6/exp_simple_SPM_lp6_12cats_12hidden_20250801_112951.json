@@ -30,8 +30,8 @@
         "pooling": "gm",
         "gm_p": 1.0,
         "conv_p": 6,
-        "log_dir": "runs/AI/BCE/2/SPM/specify/12, 12, 12/p_gm=1.0",
-        "file_path": "AI/BCE/2/SPM/specify/12, 12, 12/p_gm=1.0",
+        "log_dir": "runs/AI/BCE/2/SPM/specify/12, 12, 12/p_gm=1.0/p_lp=6",
+        "file_path": "AI/BCE/2/SPM/specify/12, 12, 12/p_gm=1.0/p_lp=6",
         "add_graph": false,
         "track_embeddings": false,
         "track_singular_values": true,
@@ -44,6 +44,11 @@
     "alignment index CI": [
         0.6431498254455704,
         0.7524492089476541
+    ],
+    "superposition index": 1.3186147758800528,
+    "superposition index CI": [
+        1.2461331570829224,
+        1.3910963946771833
     ],
     "empty graph stats": 0.32357820868492126,
     "singular value ratio": [
