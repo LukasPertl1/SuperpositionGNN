@@ -60,7 +60,7 @@ def run_single_experiment(experiment_config):
 
     # Alignment and Superposition indices using only well-trained instances
     well_trained_embs, active_counts = filter_well_trained_embeddings(
-        results, all_average_embeddings, ratio=0.4
+        results, all_average_embeddings, ratio=0.75
     )
     well_trained_embs = zero_mean_embeddings_list(well_trained_embs)
     ai_mean, ai_ci = alignment_index_list(well_trained_embs)

@@ -40,15 +40,15 @@
         "seed": 0
     },
     "sparcity": 0.9455966764510513,
-    "alignment index": 0.6518824230969086,
+    "alignment index": 0.6531238127095474,
     "alignment index CI": [
-        0.6299833091283807,
-        0.6737815370654364
+        0.6305964221921457,
+        0.6756512032269492
     ],
-    "superposition index": 1.263621889926244,
+    "superposition index": 1.2702279367034328,
     "superposition index CI": [
-        1.2304059298180017,
-        1.2968378500344862
+        1.2385658851268915,
+        1.3018899882799742
     ],
     "empty graph stats": 0.3138340711593628,
     "singular value ratio": [
