@@ -1,114 +1,61 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Publication-quality settings similar to other scripts
-plt.rcParams.update({
-    "font.family": "serif",
-    "mathtext.fontset": "stix",
-    "font.size": 8,
-    "axes.labelsize": 10,
-    "axes.titlesize": 12,
-    "axes.linewidth": 0.8,
-    "xtick.direction": "in",
-    "ytick.direction": "in",
-    "xtick.major.size": 3,
-    "ytick.major.size": 3,
-    "grid.linestyle": "--",
-    "grid.linewidth": 0.3
-})
+# Data from Script 1
+p_values = [1, 2, 4, 8, 16]
+alignment_data = [0.665, 0.883, 0.883, 0.812, 0.890]
+alignment_err = [0.01, 0.02, 0.025, 0.023, 0.04]
+superposition_data = [1.86, 1.90, 1.78, 1.72, 1.30]
+superposition_err = [0.05, 0.05, 0.06, 0.04, 0.05]
 
-def plot_alignment_superposition(
+# Plot with log x-axis and black color
+fig, ax = plt.subplots(figsize=(8, 5), dpi=120)
+
+# Alignment on primary axis
+ax.errorbar(
     p_values,
-    alignment_series,
-    alignment_errors,
-    superposition_series,
-    superposition_errors,
-    alignment_labels=None,
-    superposition_labels=None,
-    output_file="figure.pdf",
-):
-    """Plot Alignment and Superposition indices versus *p* on dual y-axes.
+    alignment_data,
+    yerr=alignment_err,
+    fmt='-o',
+    capsize=5,
+    color='black',
+    markerfacecolor='black',
+    label='Alignment'
+)
 
-    Parameters
-    ----------
-    p_values : sequence of float
-        Numeric *p* values; the final entry is labeled as infinity on the x-axis.
-    alignment_series : list of sequences
-        Each sequence contains Alignment Index values for one line.
-    alignment_errors : list of sequences
-        95% confidence interval half-widths for ``alignment_series``.
-    superposition_series : list of sequences
-        Each sequence contains Superposition Index values for one line.
-    superposition_errors : list of sequences
-        95% confidence interval half-widths for ``superposition_series``.
-    alignment_labels : list of str, optional
-        Labels for Alignment Index lines.
-    superposition_labels : list of str, optional
-        Labels for Superposition Index lines.
-    output_file : str, optional
-        Destination for saving the figure in PDF format.
-    """
-    fig, ax1 = plt.subplots(figsize=(3.5, 2.5), dpi=300)
+# Superposition on secondary axis
+ax2 = ax.twinx()
+ax2.errorbar(
+    p_values,
+    superposition_data,
+    yerr=superposition_err,
+    fmt='--s',
+    capsize=5,
+    color='black',
+    markerfacecolor='black',
+    label='Superposition'
+)
 
-    # Plot Alignment Index on primary axis
-    if alignment_labels is None:
-        alignment_labels = [f"Alignment {i+1}" for i in range(len(alignment_series))]
-    for data, err, label in zip(alignment_series, alignment_errors, alignment_labels):
-        ax1.errorbar(p_values, data, yerr=err, label=label, marker="o", linewidth=1.5)
-    ax1.set_xlabel("p")
-    ax1.set_ylabel("Alignment Index")
-    ax1.set_xscale("log", base=2)
+# Log scale for x-axis (base 2)
+ax.set_xscale('log', base=2)
 
-    # Secondary axis for Superposition Index
-    ax2 = ax1.twinx()
-    if superposition_labels is None:
-        superposition_labels = [f"Superposition {i+1}" for i in range(len(superposition_series))]
-    for data, err, label in zip(superposition_series, superposition_errors, superposition_labels):
-        ax2.errorbar(p_values, data, yerr=err, label=label, marker="s", linestyle="--", linewidth=1.5)
-    ax2.set_ylabel("Superposition Index")
+# Labels and Title
+ax.set_xlabel('p')
+ax.set_ylabel('Alignment Index')
+ax2.set_ylabel('Superposition Index')
+plt.title('Alignment and Superposition vs. p')
 
-    # Combine legends from both axes
-    lines1, labels1 = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, labels1 + labels2, loc="best", fontsize=8)
+# Legend
+lines, labels = ax.get_legend_handles_labels()
+lines2, labels2 = ax2.get_legend_handles_labels()
+ax.legend(lines + lines2, labels + labels2, loc='best')
 
-    # x-axis ticks: label last value as infinity
-    ax1.set_xticks(p_values)
-    xticklabels = [str(p) for p in p_values]
-    if xticklabels:
-        xticklabels[-1] = r"$\infty$"
-    ax1.set_xticklabels(xticklabels)
+# X-axis ticks with infinity label
+ax.set_xticks(p_values)
+ax.set_xticklabels([str(p) for p in p_values[:-1]] + [r'$\infty$'])
 
-    ax1.grid(True, which="both", axis="both", alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_file, format="pdf")
-    plt.show()
+# Grid
+ax.grid(True, which="both", linestyle="--", linewidth=0.3, alpha=0.3)
 
-if __name__ == "__main__":
-    # Example data; replace with experimental results as needed
-    p = [1, 2, 4, 8, 16]
-
-    alignment_data = [
-        [0.665, 0.883, 0.883, 0.812, 0.890],
-    ]
-    alignment_err = [
-        [0.01, 0.02, 0.025, 0.023, 0.04],
-    ]
-
-    superposition_data = [
-        [1.86, 1.90, 1.78, 1.72, 1.30],
-    ]
-    superposition_err = [
-        [0.05, 0.05, 0.06, 0.04, 0.05],
-    ]
-
-    plot_alignment_superposition(
-        p,
-        alignment_data,
-        alignment_err,
-        superposition_data,
-        superposition_err,
-        alignment_labels=["Alignment"],
-        superposition_labels=["Superposition"],
-        output_file="alignment_superposition.pdf",
-    )
+fig.tight_layout()
+plt.show()
